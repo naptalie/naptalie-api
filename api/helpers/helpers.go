@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"fmt"
+	"encoding/json"
 	"io"
 	"log"
 	"naptalie-api/api/types"
@@ -100,6 +100,7 @@ func WeekForecast() types.TimeParameters {
 	}
 }
 
+// builds a get request with Indiana values ;0
 func BuildWeatherUrl(baseUrl string) string {
 	fq := &types.ForecastRequest{
 		Location: IndianapolisLocation(),
@@ -110,9 +111,11 @@ func BuildWeatherUrl(baseUrl string) string {
 	return baseUrl + urlValues.Encode()
 }
 
-func GetWeather(baseUrl string) {
+// performs a get request against a baseurl and returns a good/bad response
+func GetWeather(baseUrl string) *types.Response {
 
 	formattedUrl := BuildWeatherUrl(baseUrl)
+	var weatherData *types.WeatherData
 	resp, err := http.Get(formattedUrl)
 	if err != nil {
 		log.Printf("error making req: %d %s", resp.StatusCode, resp.Status)
@@ -122,10 +125,51 @@ func GetWeather(baseUrl string) {
 	if resp.StatusCode != http.StatusOK {
 		log.Println("error reading ")
 	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("error reading response body: %v", err)
+	body, _ := io.ReadAll(resp.Body)
+	if err := json.Unmarshal(body, &weatherData); err != nil {
+		return &types.Response{
+			Message: "error getting weather",
+			Data:    err,
+			Success: false,
+		}
 	}
-	fmt.Printf("response from site! %s", string(body))
+	return &types.Response{
+		Message: "success getting weather!",
+		Data:    &weatherData,
+		Success: true,
+	}
+}
+
+// Convert weather code to emoji and description
+func WeatherCodeToEmoji(code int) (string, string) {
+	switch code {
+	case 0:
+		return "☀️", "Clear sky"
+	case 1, 2, 3:
+		return "⛅", "Partly cloudy"
+	case 45, 48:
+		return "🌫️", "Foggy"
+	case 51, 53, 55:
+		return "🌦️", "Drizzle"
+	case 56, 57:
+		return "🌨️", "Freezing drizzle"
+	case 61, 63, 65:
+		return "🌧️", "Rain"
+	case 66, 67:
+		return "🌨️", "Freezing rain"
+	case 71, 73, 75:
+		return "🌨️", "Snow"
+	case 77:
+		return "🌨️", "Snow grains"
+	case 80, 81, 82:
+		return "🌦️", "Rain showers"
+	case 85, 86:
+		return "🌨️", "Snow showers"
+	case 95:
+		return "⛈️", "Thunderstorm"
+	case 96, 99:
+		return "⛈️", "Thunderstorm with hail"
+	default:
+		return "🌤️", "Unknown"
+	}
 }
