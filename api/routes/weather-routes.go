@@ -14,7 +14,7 @@ func HandleDiscordWebhookWeather(w http.ResponseWriter, r *http.Request) {
 	baseUrl := "https://api.open-meteo.com/v1/forecast?"
 
 	getWeatherData := helpers.GetWeather(baseUrl)
-	// Your logic here
+
 	response := types.Response{
 		Message: "Command executed successfully",
 		Data:    getWeatherData.Data,
